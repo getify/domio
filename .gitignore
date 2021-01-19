@@ -1,0 +1,6 @@
+.coveralls.yml
+node_modules/
+dist/
+coverage/
+package-lock.json
+coverage

@@ -1,0 +1,20 @@
+{
+	"name": "domio",
+	"description": "DOM helpers for Monio",
+	"version": "0.0.2",
+	"repository": "getify/domio",
+	"keywords": [
+		"monio",
+		"fp",
+		"monad",
+		"io",
+		"events"
+	],
+	"bugs": {
+		"url": "https://github.com/getify/domio/issues",
+		"email": "getify@gmail.com"
+	},
+	"homepage": "https://github.com/getify/domio",
+	"author": "Kyle Simpson <getify@gmail.com>",
+	"license": "MIT"
+}

@@ -1,13 +1,58 @@
 {
 	"name": "domio",
 	"description": "DOM helpers for Monio",
-	"version": "0.0.2",
+	"version": "0.1.0",
+	"main": "./src/index.js",
+	"scripts": {
+		"build": "node scripts/",
+		"prepare": "npm run build",
+		"build-all": "node scripts/build-all.js",
+		"build": "npm run build-all"
+	},
+	"dependencies": {
+		"monio": "latest"
+	},
+	"devDependencies": {
+		"import-remap": "~0.2.0",
+		"moduloze": "~0.7.0",
+		"recursive-readdir-sync": "~1.0.6"
+	},
+	"mz-dependencies": {
+		"index.js": "DOMIO",
+		"fp-helpers.js": "FPHelpers",
+		"misc-helpers.js": "MiscHelpers",
+		"dom-helpers.js": "DOMHelpers",
+		"event-helpers.js": "EventHelpers",
+		"monio/io": "IO",
+		"monio/either": "Either",
+		"monio/io-event-stream": "IOEventStream",
+		"monio/io-helpers": "IOHelpers",
+		"monio/util": "MonioUtil"
+	},
+	"exports": {
+		".": "./src/index.js",
+		"./fp-helpers": "./src/fp-helpers.js",
+		"./misc-helpers": "./src/misc-helpers.js",
+		"./dom-helpers": "./src/dom-helpers.js",
+		"./event-helpers.js": "./src/event-helpers.js",
+		"./esm": "./dist/esm/index.mjs",
+		"./esm/fp-helpers": "./dist/esm/fp-helpers.mjs",
+		"./esm/misc-helpers": "./dist/esm/misc-helpers.mjs",
+		"./esm/dom-helpers": "./dist/esm/dom-helpers.mjs",
+		"./esm/event-helpers": "./dist/esm/event-helpers.mjs",
+		"./esm-browser": "./dist/esm-browser/index.mjs",
+		"./esm-browser/fp-helpers": "./dist/esm-browser/fp-helpers.mjs",
+		"./esm-browser/misc-helpers": "./dist/esm-browser/misc-helpers.mjs",
+		"./esm-browser/dom-helpers": "./dist/esm-browser/dom-helpers.mjs",
+		"./esm-browser/event-helpers": "./dist/esm-browser/event-helpers.mjs"
+	},
 	"repository": "getify/domio",
 	"keywords": [
 		"monio",
 		"fp",
 		"monad",
 		"io",
+		"DOM",
 		"events"
 	],
 	"bugs": {

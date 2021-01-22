@@ -1,0 +1,7 @@
+{
+	"./monio/either": "./monio/either.mjs",
+	"./monio/io": "./monio/io.mjs",
+	"./monio/io-event-stream": "./monio/io-event-stream.mjs",
+	"./monio/io-helpers": "./monio/io-helpers.mjs",
+	"./monio/util": "./monio/lib/util.mjs"
+}

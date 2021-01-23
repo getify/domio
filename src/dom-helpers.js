@@ -1,5 +1,17 @@
 "use strict";
 
+// import from Monio
+var { isMonad, } = require("monio/util");
+var IO = require("monio/io");
+var {
+	listFilterInIO,
+	iif,
+	elif,
+	els,
+	iReturn,
+} = require("monio/io-helpers");
+
+// internal imports
 var {
 	invokeMethod,
 	listHead,
@@ -7,17 +19,6 @@ var {
 	compose,
 } = require("./fp-helpers.js");
 var { waitOnce, } = require("./event-helpers.js");
-
-// import from Monio
-var { isMonad, } = require("monio/util");
-var IO = require("monio/io");
-var {
-	filterIOList,
-	iif,
-	elif,
-	els,
-	iReturn,
-} = require("monio/io-helpers");
 
 
 // **********************************
@@ -64,8 +65,8 @@ var matches = (el,selector) => IO(() => el.matches(selector));
 var closest = (el,selector) => IO(() => el.closest(selector));
 var getRadioValue = (el,name) => IO.do(function *getRadioValue(){
 	var radios = yield findElements(el,`[name='${name}']`);
-	var checkedRadioEl = head(
-		yield filterIOList(isChecked,[...radios])
+	var checkedRadioEl = listHead(
+		yield listFilterInIO(isChecked,[ ...radios ])
 	);
 	return checkedRadioEl.value;
 });

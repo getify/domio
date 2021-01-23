@@ -12,7 +12,7 @@ The four collections of helpers provided:
 
 * `FP-Helpers`: a collection of typical FP utilities, including `eq(..)`, `listMap(..)`, `compose(..)`, etc; these aren't IO or even monad specific; if you already use a library like [Ramda](https://ramdajs.com/), you probably don't need most of these, but the rest of **DOMIO** uses them extensively
 
-* `Misc-Helpers`: a collection of miscellaneous IO-specific helpers, including `log(..)` (for `console.log(..)`'ing) and basic local-state-management using `getState(..)`, `setState(..)`, `updateState(..)`, etc
+* `Misc-Helpers`: a collection of miscellaneous IO-specific helpers, such as basic local-state-management (in the Reader env under `state`) using `getState(..)`, `setState(..)`, `updateState(..)`, etc
 
 * `DOM-Helpers`: a collection of DOM-focused IO-specific helpers, including `getElement(..)`, `addClass(..)`, etc
 

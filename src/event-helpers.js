@@ -1,28 +1,10 @@
 "use strict";
 
-var {
-	eq,
-	listHead,
-	listMap,
-	listFilterOut,
-	listFlatMap,
-	compose,
-} = require("./fp-helpers.js");
-
-var {
-	log,
-	getState,
-	getStates,
-	setState,
-	setStates,
-	updateState,
-} = require("./misc-helpers.js");
-
 // import from Monio
 var Either = require("monio/either");
 var IO = require("monio/io");
-var IOEventStream = require("monio/io-event-stream");
 var {
+	log,
 	applyIO,
 	doIO,
 	doIOBind,
@@ -33,6 +15,24 @@ var {
 	iReturn,
 	wasReturned,
 } = require("monio/io-helpers");
+var IOEventStream = require("monio/io-event-stream");
+
+// internal imports
+var {
+	eq,
+	listHead,
+	listMap,
+	listFilterOut,
+	listFlatMap,
+	compose,
+} = require("./fp-helpers.js");
+var {
+	getState,
+	getStates,
+	setState,
+	setStates,
+	updateState,
+} = require("./misc-helpers.js");
 
 // expose event helpers on API
 module.exports = {

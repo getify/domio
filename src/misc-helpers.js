@@ -1,11 +1,5 @@
 "use strict";
 
-var {
-	identity,
-	setProp,
-	chainAll,
-} = require("./fp-helpers.js");
-
 // import from Monio
 var IO = require("monio/io");
 var {
@@ -14,12 +8,16 @@ var {
 	iReturn,
 } = require("monio/io-helpers");
 
+// internal imports
+var {
+	setProp,
+	chainAll,
+} = require("./fp-helpers.js");
+
 
 // **********************************
 
 
-var log = msg => IO(() => console.log(msg));
-var getReader = () => IO(identity);
 var getState = prop => (
 	IO(({ state: { [prop]: val, } = {}, } = {}) => val)
 );
@@ -67,7 +65,6 @@ function shareStates(allowedStates) {
 
 // expose misc helpers on API
 module.exports = {
-	log,
 	getState,
 	getStates,
 	getCurrentState,
@@ -77,7 +74,6 @@ module.exports = {
 	updateState,
 	shareStates,
 };
-module.exports.log = log;
 module.exports.getState = getState;
 module.exports.getStates = getStates;
 module.exports.getCurrentState = getCurrentState;

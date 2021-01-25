@@ -128,11 +128,11 @@ import {
 } from "domio/esm";
 
 // or:
-import FPHelpers from "domio/fp-helpers";
+import FPHelpers from "domio/esm/fp-helpers";
 var { curry, compose } = FPHelpers;
 
 // or:
-import { whenDOMReady } from "domio/dom-helpers";
+import { whenDOMReady } from "domio/esm/dom-helpers";
 
 // you'll also want monio, which comes along
 // with Domio automatically

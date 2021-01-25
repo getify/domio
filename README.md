@@ -1,6 +1,6 @@
 # Domio
 
-Companion lib to [Monio](https://github.com/getify/monio), providing a collection of helpers to manage/manipulate the DOM with IO monads, and listen for DOM events via IO-Event-Streams and route the event handling.
+**Domio** (dä'me-yo) is a companion lib to [Monio](https://github.com/getify/monio), providing a collection of helpers to manage/manipulate the DOM with IO monads, and listen for DOM events via IO-Event-Streams and route the event handling.
 
 ## Overview
 
@@ -30,21 +30,23 @@ To install this package from `npm`:
 npm install domio
 ```
 
-The files you'll need from **Domio** are included in the `dist/` directory. They come in two forms:
+The files you'll need from **Domio** are included in the `dist/` directory. They come in three forms:
 
-* [UMD (Univeral Module Definition)](https://github.com/umdjs/umd) for easy use in the browser in normal `<script src=..></script>` tags, or with AMD-compatible script loaders, from the `dist/umd/` directory.
+* [UMD (Univeral Module Definition)](https://github.com/umdjs/umd) for use in the browser in classic `<script src=..></script>` tags, or with AMD-compatible script loaders, from the `dist/umd/` directory.
 
     You'll likely deploy the single `bundle.js` file for **Domio**, as well Monio's `bundle.js` file (suggested: rename them!), for most convenience. You *can* however deploy individual files (assuming they're loaded in the correct order) from here if you choose, but it's not as recommended/optimal.
 
-* [ESM (ES Modules)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules) for use in modern browser applications, using `<script type=module src=..></script>` tags and `import` / `export` statements, from the `dist/esm-browser/` directory.
+* [Browser ESM (ES Modules)](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Guide/Modules) for use in modern browser applications, using `<script type=module src=..></script>` tags and `import` / `export` statements, from the `dist/esm-browser/` directory.
 
     You'll likely deploy all of the files in this directory, exactly as they appear in there, including the `monio` sub-directory and its files. The build for **Domio** uses [Import-Remap](https://github.com/getify/import-remap) to ensure all references to Monio's files in its `import` statements resolve properly to that relative location.
 
     In other words, you won't need to separately deploy Monio when using **Domio**, you'll just use the files it ships with.
 
+* Plain ESM from the `dist/esm/` directory, for potential use in non-browser environments (ie, Node). These files may prove useful in some endeavors, and are provided for completeness sake. But **Domio** is definitely geared more for use in browsers.
+
 ## Browser Usage
 
-Using the UMD-style files from `dist/`, loaded as normal scripts, you'll have automatic globals to interact with in your app:
+Using the UMD-style files from `dist/umd/`, loaded as normal scripts, you'll have automatic globals to interact with in your app:
 
 ```js
 var { curry, compose } = FPHelpers;
@@ -117,7 +119,7 @@ var { whenDOMReady } = require("domio/dom-helpers");
 var IO = require("monio/io");
 ```
 
-Or in an ES module (in Node):
+Or in a Node ES module:
 
 ```js
 import {

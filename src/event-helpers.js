@@ -14,6 +14,7 @@ var {
 	iNot,
 	iReturn,
 	wasReturned,
+	ifReturned,
 } = require("monio/io-helpers");
 var IOEventStream = require("monio/io-event-stream");
 
@@ -128,13 +129,10 @@ function manageDOMEvents(evtEmitter) {
 }
 
 function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
-	var [
-		running,
-		elements,
-	] = yield getStates(
-		"running",
-		"elements",
-	);
+	// abort if DOM events is already stopped
+	yield doIO(throwIfNotRunning);
+
+	var elements = yield getState("elements");
 	// normalize options
 	options = (
 		(options && typeof options == "object") ? options :
@@ -143,53 +141,42 @@ function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
 	);
 	var capture = options.capture = !!options.capture;
 	var bindingLabel = `${evtName}:${capture}`;
+	var evtStreams = elements.has(el) ? elements.get(el) : {};
 
-	var ifres = yield iif(running,function *then(){
-		var evtStreams = elements.has(el) ? elements.get(el) : {};
+	// new listener?
+	return iif(!evtStreams[bindingLabel],function *then(){
+		evtStreams = {
+			...evtStreams,
 
-		// new listener?
-		yield iif(!evtStreams[bindingLabel],function *then(){
-			evtStreams = {
-				...evtStreams,
+			// sets up stream (actual event binding is lazy)
+			[bindingLabel]: [
+				yield IOEventStream(el,evtName,{ evtOpts: options, }),
+				/*listenerCount=*/1,
+			],
+		};
+		elements = new Map(elements);
+		elements.set(el,evtStreams);
+		yield updateState(setState("elements",elements));
 
-				// sets up stream (actual event binding is lazy)
-				[bindingLabel]: [
-					yield IOEventStream(el,evtName,{ evtOpts: options, }),
-					/*listenerCount=*/1,
-				],
-			};
-			elements = new Map(elements);
-			elements.set(el,evtStreams);
-			yield updateState(setState("elements",elements));
-
-			// signal that new stream was added to listen to
-			yield controlSignal;
-		},
-		els(function *otherwise(){
-			// increment the listener count
-			evtStreams = { ...evtStreams, };
-			let [ stream, count, ] = evtStreams[bindingLabel];
-			evtStreams[bindingLabel] = [ stream, count + 1, ];
-			elements = new Map(elements);
-			elements.set(el,evtStreams);
-			yield updateState(setState("elements",elements));
-		}));
-	});
-
-	// not running anymore?
-	if (!ifres) {
-		throw new Error("DOM events management already stopped");
-	}
+		// signal that new stream was added to listen to
+		yield controlSignal();
+	},
+	els(function *otherwise(){
+		// increment the listener count
+		evtStreams = { ...evtStreams, };
+		let [ stream, count, ] = evtStreams[bindingLabel];
+		evtStreams[bindingLabel] = [ stream, count + 1, ];
+		elements = new Map(elements);
+		elements.set(el,evtStreams);
+		yield updateState(setState("elements",elements));
+	}));
 }
 
 function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
-	var [
-		running,
-		elements,
-	] = yield getStates(
-		"running",
-		"elements",
-	);
+	// abort if DOM events is already stopped
+	yield doIO(throwIfNotRunning);
+
+	var elements = yield getState("elements");
 	// normalize options
 	options = (
 		(options && typeof options == "object") ? options :
@@ -199,7 +186,7 @@ function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
 	var capture = options.capture = !!options.capture;
 	var bindingLabel = `${evtName}:${capture}`;
 
-	var ifres = yield iif(running && elements.has(el),function *then(){
+	return iif(elements.has(el),function *then(){
 		var evtStreams = elements.get(el);
 		var [ stream, count, ] = evtStreams[bindingLabel] || [];
 
@@ -215,7 +202,7 @@ function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
 				yield updateState(setState("elements",elements));
 			},
 			// otherwise, last listener should be removed
-			els(function *elsedo(){
+			els(function *otherwise(){
 				evtStreams = { ...evtStreams, };
 				delete evtStreams[bindingLabel];
 				elements = new Map(elements);
@@ -231,57 +218,29 @@ function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
 				yield IOEventStream.close(stream);
 
 				// signal stream should no longer be listened to
-				yield controlSignal;
+				yield controlSignal();
 			})),
 		]);
 	});
-
-	// not running anymore?
-	if (!ifres) {
-		throw new Error("DOM events management already stopped");
-	}
 }
 
 function *addDOMRouter(env,updateRouters) {
-	var [
-		running,
-		routers,
-	] = yield getStates(
-		"running",
-		"routers",
-	);
+	// abort if DOM events is already stopped
+	yield doIO(throwIfNotRunning);
 
-	var ifres = yield iif(running,
-		updateState(
-			setState("routers",updateRouters(routers))
-		)
+	var routers = yield getState("routers");
+	return updateState(
+		setState("routers",updateRouters(routers))
 	);
-
-	// not running anymore?
-	if (!ifres) {
-		throw new Error("DOM events management already stopped");
-	}
 }
 
 function *removeDOMRouter(env,router) {
-	var [
-		running,
-		routers,
-	] = yield getStates(
-		"running",
-		"routers",
-	);
+	yield throwIfNotRunning();
 
-	var ifres = yield iif(running,
-		updateState(
-			setState("routers",listFilterOut(eq(router))(routers))
-		)
+	var routers = yield getState("routers");
+	return updateState(
+		setState("routers",listFilterOut(eq(router))(routers))
 	);
-
-	// not running anymore?
-	if (!ifres) {
-		throw new Error("DOM events management already stopped");
-	}
 }
 
 function *initControlStream(env) {
@@ -301,7 +260,9 @@ function *initControlStream(env) {
 
 	return {
 		controlStream,
-		controlSignal: IO(() => control.emit("signal",SIGNAL)),
+		controlSignal() {
+			return IO(() => control.emit("signal",SIGNAL));
+		},
 		SIGNAL,
 	};
 }
@@ -315,23 +276,19 @@ function *getEventStreams(env) {
 		"elements",
 	);
 
-	var ifres = yield iif(running,function *then(){
-		var collectStreams = listFlatMap(
-			compose(listMap(listHead),Object.values)
-		);
-		return iReturn(
-			collectStreams([ ...elements.values(), ])
-		);
-	},
-	els(
-		iReturn([])
-	));
-
-	// was there an "early return" from inside the if/else
-	// branches?
-	if (wasReturned(ifres)) {
-		return ifres.returned;
-	}
+	return ifReturned(
+		iif(running,function *then(){
+			var collectStreams = listFlatMap(
+				compose(listMap(listHead),Object.values)
+			);
+			return iReturn(
+				collectStreams([ ...elements.values(), ])
+			);
+		},
+		els(
+			iReturn([])
+		))
+	);
 }
 
 // listen to all DOM event streams and route out
@@ -395,35 +352,29 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 
 			// control signal received?
 			let ifres = yield iif(evt == SIGNAL,function *then(){
-				// have we stopped?
-				var ifres2 = yield iif(iNot(getState("running")),[
-					// send return signal so we can exit
-					iReturn()
-				],
-				elif(function elseif(){
-					// throw away (to re-acquire) list of streams
-					streams = null;
+				return yield ifReturned(
+					// have we stopped?
+					iif(iNot(getState("running")),[
+						// send return signal so we can exit
+						iReturn()
+					],
+					elif(function elseif(){
+						// throw away (to re-acquire) list of streams
+						streams = null;
 
-					// get a promise for the next control signal
-					streamHeads.set(controlStream,getNextControlSignal());
-				}));
-
-				// was there an "early return" from inside the
-				// if/else branches?
-				if (wasReturned(ifres2)) {
-					return ifres2;
-				}
+						// get a promise for the next control signal
+						streamHeads.set(controlStream,getNextControlSignal());
+					}))
+				);
 			},
 			elif(!!evt,
 				// route the DOM event to its handler
 				doIO(routeDOMEvent,evt)
 			),
-			els([
+			els(function *els(){
 				// should never get here!
-				log("undefined value from stream"),
-				// send return signal so we can exit
-				iReturn(),
-			]));
+				throw new Error("Undefined value from DOM events management stream");
+			}));
 
 			// was there an "early return" from inside the
 			// if/else branches?
@@ -486,49 +437,36 @@ function *routeDOMEvent(env,evt) {
 		"routers",
 	);
 
-	var ifres = yield iif(running,function *then(){
+	return iif(running,function *then(){
 		// attempt router delegation (in reverse order)
 		for (let router of routers) {
-			let ifres2 = yield iif(getState("running"),function *then(){
+			// still running?
+			let ifres = yield iif(getState("running"),function *then(){
 				var evtHandled = yield router(evt);
 				// was the event handled (completely) by the router?
 				return iif(evtHandled === true,
-					// treated like a full early-return
 					iReturn()
 				);
 			},
 			els(
-				// using "return" mechanism to signal intent to
-				// break out of the loop
-				//
-				// note: this signal will not propagated out as a full
-				// early return
 				iReturn("break")
 			));
 
 			// did the if/else return a "break" or "return" signal?
-			if (wasReturned(ifres2)) {
-				// "break" out of the loop?
-				if (ifres2.returned === "break") {
-					return;
+			if (wasReturned(ifres)) {
+				if (ifres.returned == "break") {
+					break;
 				}
 				else {
-					// propagate the full early-return signal out
-					return ifres2.returned;
+					return;
 				}
 			}
 		}
+
+		// if we get here (no early return), it's an unhandled event, so emit
+		// it for last-ditch tracking/logging purposes
+		yield emitEvent("DOM-event",evt);
 	});
-
-	// was there an "early return" from inside the if/else
-	// branches?
-	if (wasReturned(ifres)) {
-		return ifres.returned;
-	}
-
-	// if we get here, it's an unhandled event, so emit
-	// it for last-ditch tracking/logging purposes
-	yield emitEvent("DOM-event",evt);
 }
 
 function *stopManagingDOMEvents({ controlStream, controlSignal, }) {
@@ -542,7 +480,7 @@ function *stopManagingDOMEvents({ controlStream, controlSignal, }) {
 		"routers",
 	);
 
-	yield iif(running,function *then(){
+	return iif(running,function *then(){
 		// teardown all current event streams and
 		// unbind their underlying event listeners
 		//
@@ -561,7 +499,7 @@ function *stopManagingDOMEvents({ controlStream, controlSignal, }) {
 		);
 
 		// tear down the background DOM events handler
-		yield controlSignal;
+		yield controlSignal();
 
 		// NOTE: does not wait for the stream
 		// to finish closing
@@ -598,4 +536,10 @@ function reportError(err) {
 	else {
 		console.log(err.toString());
 	}
+}
+
+function *throwIfNotRunning() {
+	return iif(iNot(getState("running")),function *then(){
+		throw new Error("DOM events management already stopped");
+	});
 }

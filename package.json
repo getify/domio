@@ -1,7 +1,7 @@
 {
 	"name": "domio",
 	"description": "DOM and Event helpers for Monio",
-	"version": "0.3.0",
+	"version": "0.4.0",
 	"main": "./src/index.js",
 	"scripts": {
 		"build": "node scripts/",
@@ -10,7 +10,7 @@
 		"build": "npm run build-all"
 	},
 	"dependencies": {
-		"monio": "latest"
+		"monio": ">=0.20.0"
 	},
 	"devDependencies": {
 		"import-remap": "~0.2.0",
@@ -30,11 +30,26 @@
 		"monio/util": "MonioUtil"
 	},
 	"exports": {
-		".": "./src/index.js",
-		"./fp-helpers": "./src/fp-helpers.js",
-		"./misc-helpers": "./src/misc-helpers.js",
-		"./dom-helpers": "./src/dom-helpers.js",
-		"./event-helpers.js": "./src/event-helpers.js",
+		".": {
+			"import": "./dist/esm/index.mjs",
+			"default": "./src/index.js"
+		},
+		"./fp-helpers": {
+			"import": "./dist/esm/fp-helpers.mjs",
+			"default": "./src/fp-helpers.js"
+		},
+		"./misc-helpers": {
+			"import": "./dist/esm/misc-helpers.mjs",
+			"default": "./src/misc-helpers.js"
+		},
+		"./dom-helpers": {
+			"import": "./dist/esm/dom-helpers.mjs",
+			"default": "./src/dom-helpers.js"
+		},
+		"./event-helpers.js": {
+			"import": "./dist/esm/event-helpers.mjs",
+			"default": "./src/event-helpers.js"
+		},
 		"./esm": "./dist/esm/index.mjs",
 		"./esm/fp-helpers": "./dist/esm/fp-helpers.mjs",
 		"./esm/misc-helpers": "./dist/esm/misc-helpers.mjs",

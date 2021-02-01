@@ -127,19 +127,21 @@ import {
     MiscHelpers,
     DOMHelpers,
     EventHelpers,
-} from "domio/esm";
+} from "domio";
 
 // or:
-import FPHelpers from "domio/esm/fp-helpers";
+import FPHelpers from "domio/fp-helpers";
 var { curry, compose } = FPHelpers;
 
 // or:
-import { whenDOMReady } from "domio/esm/dom-helpers";
+import { whenDOMReady } from "domio/dom-helpers";
 
 // you'll also want monio, which comes along
 // with Domio automatically
-import IO from "monio/esm/io";
+import IO from "monio/io";
 ```
+
+**Note:** As of v0.4.0, the previously required ESM import specifier segment `/esm` in **Domio** `import` paths has been deprecated (and will eventually be removed), in favor of unified import specifier paths via [Node Conditional Exports](https://nodejs.org/api/packages.html#packages_conditional_exports). For ESM `import` statements, always use the specifier style `"domio"` or `"domio/dom-helpers"`, instead of `"domio/esm"` and `"domio/esm/dom-helpers"`, respectively. This does not affect the separate `/esm-browser` paths, should you (for some reason) need to access the browser-build of the ESM files via `import` statements in Node (not supported).
 
 ## License
 

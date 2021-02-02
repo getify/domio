@@ -53,6 +53,7 @@ var compose = unapply(
 // expose FP helpers on API
 module.exports = {
 	identity,
+	apply,
 	unapply,
 	invokeMethod,
 	prop,
@@ -74,6 +75,7 @@ module.exports = {
 	curry,
 };
 module.exports.identity = identity;
+module.exports.apply = apply;
 module.exports.unapply = unapply;
 module.exports.invokeMethod = invokeMethod;
 module.exports.prop = prop;

@@ -21,10 +21,12 @@ var IOEventStream = require("monio/io-event-stream");
 // internal imports
 var {
 	eq,
+	prop,
 	listHead,
 	listMap,
 	listFilterOut,
 	listFlatMap,
+	takeAll,
 	compose,
 } = require("./fp-helpers.js");
 var {
@@ -214,11 +216,11 @@ function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
 				}
 				yield updateState(setState("elements",elements));
 
-				// unbind event listener and close stream
-				yield IOEventStream.close(stream);
-
 				// signal stream should no longer be listened to
 				yield controlSignal();
+
+				// unbind event listener and close stream
+				yield IOEventStream.close(stream);
 			})),
 		]);
 	});
@@ -278,11 +280,21 @@ function *getEventStreams(env) {
 
 	return ifReturned(
 		iif(running,function *then(){
-			var collectStreams = listFlatMap(
-				compose(listMap(listHead),Object.values)
+			var collectOpenStreams = compose(
+				// (4) filter out streams that are already closed
+				listFilterOut(prop("closed")),
+
+				// (3) extract the first element of each tuple
+				listMap(listHead),
+
+				// (2) extract all values (tuples) from each Map
+				listFlatMap(Object.values),
+
+				// (1) consume the Set 'values()' iterator
+				takeAll
 			);
 			return iReturn(
-				collectStreams([ ...elements.values(), ])
+				collectOpenStreams(elements.values())
 			);
 		},
 		els(
@@ -370,11 +382,7 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 			elif(!!evt,
 				// route the DOM event to its handler
 				doIO(routeDOMEvent,evt)
-			),
-			els(function *els(){
-				// should never get here!
-				throw new Error("Undefined value from DOM events management stream");
-			}));
+			));
 
 			// was there an "early return" from inside the
 			// if/else branches?

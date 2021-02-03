@@ -37,6 +37,7 @@ var listReduceRight = (fn,...args) => (
 );
 var listPrepend = v => (list => [ v, ...list, ]);
 var listAppend = v => (list => [ ...list, v, ]);
+var takeAll = it => [ ...it, ];
 var chainAll = (...steps) => m => (
 	steps.reduce((m,fn) => m.chain(fn),m)
 );
@@ -70,6 +71,7 @@ module.exports = {
 	listReduceRight,
 	listPrepend,
 	listAppend,
+	takeAll,
 	chainAll,
 	compose,
 	curry,
@@ -92,6 +94,7 @@ module.exports.listReduce = listReduce;
 module.exports.listReduceRight = listReduceRight;
 module.exports.listPrepend = listPrepend;
 module.exports.listAppend = listAppend;
+module.exports.takeAll = takeAll;
 module.exports.chainAll = chainAll;
 module.exports.compose = compose;
 module.exports.curry = curry;

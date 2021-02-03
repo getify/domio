@@ -1,7 +1,7 @@
 {
 	"name": "domio",
 	"description": "DOM and Event helpers for Monio",
-	"version": "0.4.3",
+	"version": "0.5.0",
 	"main": "./src/index.js",
 	"scripts": {
 		"build": "node scripts/",

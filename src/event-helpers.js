@@ -1,6 +1,7 @@
 "use strict";
 
 // import from Monio
+var { liftM, } = require("monio/util");
 var Either = require("monio/either");
 var IO = require("monio/io");
 var {
@@ -64,17 +65,26 @@ function emitEvent(type,...args) {
 }
 
 function waitOnce(el,evtName,opts) {
-	return IO(async function waitOnce(){
-		var stream = IOEventStream(el,evtName,{ evtOpts: opts, }).run();
-		var res = await stream.next();
-		await stream.return();
-		return res.value;
-	});
+	return (
+		// unwrap DOM element if monad
+		liftM(el).chain(el => (
+			IO(async function waitOnce(){
+				var stream = IOEventStream(el,evtName,{ evtOpts: opts, }).run();
+				var res = await stream.next();
+				await stream.return();
+				return res.value;
+			})
+		))
+	);
 }
 
-function raf() {
+function raf(nextFrame = true) {
 	return IO(() =>
-		new Promise(res => requestAnimationFrame(res))
+		new Promise(res => (
+			requestAnimationFrame(() => (
+				nextFrame ? requestAnimationFrame(res) : res()
+			))
+		))
 	);
 }
 
@@ -131,6 +141,9 @@ function manageDOMEvents(evtEmitter) {
 }
 
 function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
+	// unwrap DOM element if monad
+	el = yield liftM(el);
+
 	// abort if DOM events is already stopped
 	yield doIO(throwIfNotRunning);
 
@@ -175,6 +188,9 @@ function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
 }
 
 function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
+	// unwrap DOM element if monad
+	el = yield liftM(el);
+
 	// abort if DOM events is already stopped
 	yield doIO(throwIfNotRunning);
 

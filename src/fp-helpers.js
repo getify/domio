@@ -10,8 +10,8 @@ var { curry, } = require("monio/util");
 var identity = v => v;
 var apply = fn => (args => fn(...args));
 var unapply = fn => ((...args) => fn(args));
-var invokeMethod = (fnName,...args) => (obj => (
-	obj[fnName](...args)
+var invokeMethod = (methodName,...args) => (obj => (
+	obj[methodName](...args)
 ));
 var prop = key => (obj => obj[key]);
 var setProp = (prop,val) => ((obj = {}) => (

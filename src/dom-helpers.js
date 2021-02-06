@@ -1,14 +1,17 @@
 "use strict";
 
 // import from Monio
-var { isMonad, } = require("monio/util");
+var { isMonad, curry, liftM, } = require("monio/util");
 var IO = require("monio/io");
 var {
 	listFilterInIO,
 	iif,
 	elif,
 	els,
+	iNot,
 	iReturn,
+	getPropIO,
+	assignPropIO,
 } = require("monio/io-helpers");
 
 // internal imports
@@ -24,75 +27,82 @@ var { waitOnce, } = require("./event-helpers.js");
 // **********************************
 
 
-var whenDOMReady = () => IO((env = {}) => (
-	iif(env.document && env.document.readyState && env.document.readyState != "loading",[
-		iReturn(),
-	],
-	els(
-		waitOnce(env.document,"DOMContentLoaded")
-	)).run(env)
-));
+var whenDOMReady = () => IO.do(
+	function *whenDOMReady({ document, } = {}){
+		return iif((
+			// DOM root object defined
+			document &&
+			// but DOM not ready yet?
+			!(
+				document.readyState &&
+				document.readyState != "loading"
+			)
+		),[
+			// listen for the DOM-ready event
+			waitOnce(document,"DOMContentLoaded")
+		]);
+	}
+);
 var getElement = id => (
 	IO(({ document, } = {}) => document.getElementById(id))
 );
-var findElements = (el,selector) => (
-	IO(() => el.querySelectorAll(selector))
-);
+var findElements = invokeMethodIO("querySelectorAll");
 var findElement = compose(
-	invokeMethod("chain",compose(IO.of,listHead)),
+	invokeMethod("map",listHead),
 	findElements
 );
-var modifyClassList = (el,methodName,...classNames) => (
-	IO(() => (
-		compose(
-			invokeMethod(methodName,...classNames),
-			prop("classList")
-		)(el)
-	))
+var modifyClassList = methodName => (
+	(el,...args) => (
+		invokeMethodIO(methodName)
+		(
+			getPropIO("classList",el),
+			...args
+		)
+	)
 );
-var addClass = (el,...classNames) => (
-	modifyClassList(el,"add",...classNames)
-);
-var removeClass = (el,...classNames) => (
-	modifyClassList(el,"remove",...classNames)
-);
+var addClass = modifyClassList("add");
+var removeClass = modifyClassList("remove");
 var setCSSVar = (el,propName,val) => (
-	IO(() => (
-		el.style.setProperty(`--${propName}`,val)
-	))
+	invokeMethodIO("setProperty")
+	(
+		getPropIO("style",el),
+		`--${propName}`,
+		val
+	)
 );
-var matches = (el,selector) => IO(() => el.matches(selector));
-var closest = (el,selector) => IO(() => el.closest(selector));
+var matches = invokeMethodIO("matches");
+var closest = invokeMethodIO("closest");
 var getRadioValue = (el,name) => IO.do(function *getRadioValue(){
+	el = yield liftM(el);
 	var radios = yield findElements(el,`[name='${name}']`);
 	var checkedRadioEl = listHead(
 		yield listFilterInIO(isChecked,[ ...radios ])
 	);
 	return checkedRadioEl.value;
 });
-var getHTML = el => IO(() => el.innerHTML);
-var setHTML = (el,source) => (
-	(
-		// lift to monad (if necessary)
-		isMonad(source) ? source : IO.of(source)
-	)
-	.map(html => el.innerHTML = html)
-);
-var disableElement = el => IO(() => el.disabled = true);
-var enableElement = el => IO(() => el.disabled = false);
-var isChecked = el => IO(() => !!el.checked);
-var isEnabled = el => IO(() => !el.disabled);
-var focusElement = el => IO(() => el.focus());
-var blurElement = el => IO(() => el.blur());
+var getHTML = curry(getPropIO)("innerHTML");
+var setHTML = (el,html) => assignPropIO("innerHTML",html,el);
+var disableElement = curry(assignPropIO)("disabled",true);
+var enableElement = curry(assignPropIO)("disabled",false);
+var isChecked = curry(getPropIO)("checked");
+var isDisabled = curry(getPropIO)("disabled");
+var isEnabled = el => iNot(isDisabled(el));
+var focusElement = invokeMethodIO("focus");
+var blurElement = invokeMethodIO("blur");
+
+
+// **********************************
+
+
 var getCurrentSelection = () => (
 	IO(({ window, } = {}) => window.getSelection())
 );
-var emptySelection = (sel = getCurrentSelection()) => (
-	sel.map(sel => sel.empty())
-);
-var removeAllRanges = (sel = getCurrentSelection()) => (
-	sel.map(sel => sel.removeAllRanges())
-);
+var emptySelection = invokeMethodIO("empty");
+var removeAllRanges = invokeMethodIO("removeAllRanges");
+
+
+// **********************************
+
 
 // adapted from: https://gist.github.com/RavenZZ/f0ce802249056fb55d9effeb8cf0b6c5
 function *clearTextSelection({ window, document, } = {}) {
@@ -111,6 +121,14 @@ function *clearTextSelection({ window, document, } = {}) {
 		));
 	}
 	catch (err) {}
+}
+
+function invokeMethodIO(methodName) {
+	return (obj,...args) => (
+		liftM(obj).chain(obj => (
+			IO(() => obj[methodName](...args))
+		))
+	);
 }
 
 
@@ -134,12 +152,10 @@ module.exports = {
 	disableElement,
 	enableElement,
 	isChecked,
+	isDisabled,
 	isEnabled,
 	focusElement,
 	blurElement,
-	getCurrentSelection,
-	emptySelection,
-	removeAllRanges,
 	clearTextSelection,
 };
 module.exports.whenDOMReady = whenDOMReady;
@@ -157,10 +173,8 @@ module.exports.setHTML = setHTML;
 module.exports.disableElement = disableElement;
 module.exports.enableElement = enableElement;
 module.exports.isChecked = isChecked;
+module.exports.isDisabled = isDisabled;
 module.exports.isEnabled = isEnabled;
 module.exports.focusElement = focusElement;
 module.exports.blurElement = blurElement;
-module.exports.getCurrentSelection = getCurrentSelection;
-module.exports.emptySelection = emptySelection;
-module.exports.removeAllRanges = removeAllRanges;
 module.exports.clearTextSelection = clearTextSelection;

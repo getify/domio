@@ -28,23 +28,33 @@ var { waitOnce, } = require("./event-helpers.js");
 
 
 var whenDOMReady = () => IO.do(
-	function *whenDOMReady({ document, } = {}){
+	function *whenDOMReady({
+		// NOTE: intentionally providing impure default
+		// fallback values here, for convenience
+		window: win = window,
+		document: doc = win.document || document,
+	} = {}){
 		return iif((
 			// DOM root object defined
-			document &&
+			doc &&
 			// but DOM not ready yet?
 			!(
-				document.readyState &&
-				document.readyState != "loading"
+				doc.readyState &&
+				doc.readyState != "loading"
 			)
 		),[
 			// listen for the DOM-ready event
-			waitOnce(document,"DOMContentLoaded")
+			waitOnce(doc,"DOMContentLoaded")
 		]);
 	}
 );
 var getElement = id => (
-	IO(({ document, } = {}) => document.getElementById(id))
+	IO(({
+		// NOTE: intentionally providing impure default
+		// fallback values here, for convenience
+		window: win = window,
+		document: doc = win.document || document,
+	} = {}) => doc.getElementById(id))
 );
 var findElements = invokeMethodIO("querySelectorAll");
 var findElement = compose(
@@ -62,12 +72,36 @@ var modifyClassList = methodName => (
 );
 var addClass = modifyClassList("add");
 var removeClass = modifyClassList("remove");
-var setCSSVar = (el,propName,val) => (
-	invokeMethodIO("setProperty")
-	(
-		getPropIO("style",el),
-		`--${propName}`,
-		val
+var getCSSVar = (el,varName) => (
+	liftM(el).chain(el => (
+		IO(({
+			// NOTE: intentionally providing impure default
+			// fallback values here, for convenience
+			window: win = window,
+			getComputedStyle = win.getComputedStyle,
+		} = {}) => (
+			getComputedStyle(el)
+			.getPropertyValue(`--${varName}`)
+		))
+	))
+)
+var setCSSVar = (el,varName,val) => (
+	liftM(val).chain(
+		curry(invokeMethodIO("setProperty"),3)
+		(
+			getPropIO("style",el),
+			`--${varName}`,
+		)
+	)
+);
+var getDOMAttr = invokeMethodIO("getAttribute");
+var assignDOMAttr = (el,attrName,val) => (
+	liftM(val).chain(
+		curry(invokeMethodIO("setAttribute"),3)
+		(
+			el,
+			attrName,
+		)
 	)
 );
 var matches = invokeMethodIO("matches");
@@ -95,7 +129,11 @@ var blurElement = invokeMethodIO("blur");
 
 
 var getCurrentSelection = () => (
-	IO(({ window, } = {}) => window.getSelection())
+	IO(({
+		// NOTE: intentionally providing impure default
+		// fallback value here, for convenience
+		window: win = window,
+	} = {}) => win.getSelection())
 );
 var emptySelection = invokeMethodIO("empty");
 var removeAllRanges = invokeMethodIO("removeAllRanges");
@@ -105,9 +143,14 @@ var removeAllRanges = invokeMethodIO("removeAllRanges");
 
 
 // adapted from: https://gist.github.com/RavenZZ/f0ce802249056fb55d9effeb8cf0b6c5
-function *clearTextSelection({ window, document, } = {}) {
+function *clearTextSelection({
+	// NOTE: intentionally providing impure default
+	// fallback values here, for convenience
+	window: win = window,
+	document: doc = win.document || document,
+} = {}) {
 	try {
-		yield iif(window.getSelection,function *then(){
+		yield iif(win.getSelection,function *then(){
 			var sel = yield getCurrentSelection();
 
 			// Chrome?
@@ -116,8 +159,8 @@ function *clearTextSelection({ window, document, } = {}) {
 			elif(!!sel.removeAllRanges,removeAllRanges(IO.of(sel))));
 		},
 		// IE?
-		elif(document.selection,
-			emptySelection(IO.of(document.selection))
+		elif(doc.selection,
+			emptySelection(IO.of(doc.selection))
 		));
 	}
 	catch (err) {}
@@ -143,7 +186,10 @@ module.exports = {
 	findElement,
 	addClass,
 	removeClass,
+	getCSSVar,
 	setCSSVar,
+	getDOMAttr,
+	assignDOMAttr,
 	matches,
 	closest,
 	getRadioValue,
@@ -164,7 +210,10 @@ module.exports.findElements = findElements;
 module.exports.findElement = findElement;
 module.exports.addClass = addClass;
 module.exports.removeClass = removeClass;
+module.exports.getCSSVar = getCSSVar;
 module.exports.setCSSVar = setCSSVar;
+module.exports.getDOMAttr = getDOMAttr;
+module.exports.assignDOMAttr = assignDOMAttr;
 module.exports.matches = matches;
 module.exports.closest = closest;
 module.exports.getRadioValue = getRadioValue;

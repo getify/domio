@@ -104,6 +104,7 @@ var assignDOMAttr = (el,attrName,val) => (
 		)
 	)
 );
+var removeDOMAttr = invokeMethodIO("removeAttribute");
 var matches = invokeMethodIO("matches");
 var closest = invokeMethodIO("closest");
 var getRadioValue = (el,name) => IO.do(function *getRadioValue(){
@@ -190,6 +191,7 @@ module.exports = {
 	setCSSVar,
 	getDOMAttr,
 	assignDOMAttr,
+	removeDOMAttr,
 	matches,
 	closest,
 	getRadioValue,
@@ -214,6 +216,7 @@ module.exports.getCSSVar = getCSSVar;
 module.exports.setCSSVar = setCSSVar;
 module.exports.getDOMAttr = getDOMAttr;
 module.exports.assignDOMAttr = assignDOMAttr;
+module.exports.removeDOMAttr = removeDOMAttr;
 module.exports.matches = matches;
 module.exports.closest = closest;
 module.exports.getRadioValue = getRadioValue;

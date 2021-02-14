@@ -1,7 +1,7 @@
 {
 	"name": "domio",
 	"description": "DOM and Event helpers for Monio",
-	"version": "0.7.4",
+	"version": "0.8.0",
 	"main": "./src/index.js",
 	"scripts": {
 		"build": "node scripts/",
@@ -10,7 +10,7 @@
 		"build": "npm run build-all"
 	},
 	"dependencies": {
-		"monio": ">=0.20.0"
+		"monio": ">=0.24.0"
 	},
 	"devDependencies": {
 		"import-remap": "~0.3.0",

@@ -42,7 +42,7 @@ var whenDOMReady = () => IO.do(
 				doc.readyState &&
 				doc.readyState != "loading"
 			)
-		),[
+		),$=>[
 			// listen for the DOM-ready event
 			waitOnce(doc,"DOMContentLoaded")
 		]);
@@ -151,18 +151,22 @@ function *clearTextSelection({
 	document: doc = win.document || document,
 } = {}) {
 	try {
-		yield iif(win.getSelection,function *then(){
+		yield iif(win.getSelection,[function *then(){
 			var sel = yield getCurrentSelection();
 
 			// Chrome?
-			yield iif(!!sel.empty,emptySelection(IO.of(sel)),
+			yield iif(!!sel.empty,$=>[
+				emptySelection(IO.of(sel)),
+			],
 			// Firefox?
-			elif(!!sel.removeAllRanges,removeAllRanges(IO.of(sel))));
-		},
+			elif(!!sel.removeAllRanges,$=>[
+				removeAllRanges(IO.of(sel)),
+			]));
+		}],
 		// IE?
-		elif(doc.selection,
-			emptySelection(IO.of(doc.selection))
-		));
+		elif(doc.selection,$=>[
+			emptySelection(IO.of(doc.selection)),
+		]));
 	}
 	catch (err) {}
 }

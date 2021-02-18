@@ -66,7 +66,7 @@ function emitEvent(type,...args) {
 
 function waitOnce(el,evtName,opts) {
 	return (
-		// unwrap DOM element if monad
+		// NOTE: intentional 'chain(..)' instead of 'map(..)'
 		liftM(el).chain(el => (
 			IO(async function waitOnce(){
 				var stream = IOEventStream(el,evtName,{ evtOpts: opts, }).run();

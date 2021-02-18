@@ -19,6 +19,15 @@ var setProp = (prop,val) => ((obj = {}) => (
 ));
 var eq = curry(Object.is,2);
 var not = fn => ((...args) => !fn(...args));
+var listOf = v => (
+	Array.isArray(v) ? v :
+	(
+		v &&
+		typeof v == "object" &&
+		typeof v[Symbol.iterator] == "function"
+	) ? [ ...v, ] :
+	[ v, ]
+);
 var listHead = list => list[0];
 var listTail = invokeMethod("slice",1);
 var listFilterIn = pred => invokeMethod("filter",pred);
@@ -61,6 +70,7 @@ module.exports = {
 	setProp,
 	eq,
 	not,
+	listOf,
 	listHead,
 	listTail,
 	listFilterIn,
@@ -84,6 +94,7 @@ module.exports.prop = prop;
 module.exports.setProp = setProp;
 module.exports.eq = eq;
 module.exports.not = not;
+module.exports.listOf = listOf;
 module.exports.listHead = listHead;
 module.exports.listTail = listTail;
 module.exports.listFilterIn = listFilterIn;

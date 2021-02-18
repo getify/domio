@@ -17,6 +17,7 @@ var {
 // internal imports
 var {
 	invokeMethod,
+	listOf,
 	listHead,
 	prop,
 	compose,
@@ -56,7 +57,10 @@ var getElement = id => (
 		document: doc = win.document || document,
 	} = {}) => doc.getElementById(id))
 );
-var findElements = invokeMethodIO("querySelectorAll");
+var findElements = compose(
+	invokeMethod("map",listOf),
+	invokeMethodIO("querySelectorAll")
+);
 var findElement = compose(
 	invokeMethod("map",listHead),
 	findElements
@@ -73,6 +77,7 @@ var modifyClassList = methodName => (
 var addClass = modifyClassList("add");
 var removeClass = modifyClassList("remove");
 var getCSSVar = (el,varName) => (
+	// NOTE: intentional 'chain(..)' instead of 'map(..)'
 	liftM(el).chain(el => (
 		IO(({
 			// NOTE: intentionally providing impure default
@@ -173,6 +178,7 @@ function *clearTextSelection({
 
 function invokeMethodIO(methodName) {
 	return (obj,...args) => (
+		// NOTE: intentional 'chain(..)' instead of 'map(..)'
 		liftM(obj).chain(obj => (
 			IO(() => obj[methodName](...args))
 		))

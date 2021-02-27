@@ -144,7 +144,7 @@ function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
 	// unwrap DOM element if monad
 	el = yield liftM(el);
 
-	// abort if DOM events is already stopped
+	// abort if DOM events are already stopped
 	yield doIO(throwIfNotRunning);
 
 	var elements = yield getState("elements");

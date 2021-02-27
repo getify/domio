@@ -1,16 +1,15 @@
 {
 	"name": "domio",
 	"description": "DOM and Event helpers for Monio",
-	"version": "0.9.0",
+	"version": "0.9.1",
 	"main": "./src/index.js",
 	"scripts": {
-		"build": "node scripts/",
+		"build": "npm run build-all",
 		"prepare": "npm run build",
-		"build-all": "node scripts/build-all.js",
-		"build": "npm run build-all"
+		"build-all": "node scripts/build-all.js"
 	},
 	"dependencies": {
-		"monio": ">=0.24.2"
+		"monio": ">=0.25.0"
 	},
 	"devDependencies": {
 		"import-remap": "~0.3.0",

@@ -1,7 +1,12 @@
 "use strict";
 
 // import from Monio
-var { isMonad, curry, liftM, } = require("monio/util");
+var {
+	isFunction,
+	isMonad,
+	curry,
+	liftM,
+} = require("monio/util");
 var IO = require("monio/io");
 var {
 	listFilterInIO,
@@ -180,7 +185,11 @@ function invokeMethodIO(methodName) {
 	return (obj,...args) => (
 		// NOTE: intentional 'chain(..)' instead of 'map(..)'
 		liftM(obj).chain(obj => (
-			IO(() => obj[methodName](...args))
+			IO(() => (
+				isFunction(obj[methodName]) ?
+					obj[methodName](...args) :
+					undefined
+			))
 		))
 	);
 }

@@ -19,6 +19,17 @@ var setProp = (prop,val) => ((obj = {}) => (
 ));
 var eq = curry(Object.is,2);
 var not = fn => ((...args) => !fn(...args));
+var fold = (s,v) => s.concat(v);
+var foldMap = curry(function foldMap(f,list,empty) {
+	return (
+		empty ? list.reduce((s,v) => fold(s,f(v)),empty) :
+		list.length > 0 ? list.slice(1).reduce(
+			(s,v) => fold(s,f(v)),
+			f(list[0])
+		) :
+		undefined
+	);
+},2);
 var listOf = v => (
 	Array.isArray(v) ? v :
 	(
@@ -70,6 +81,8 @@ module.exports = {
 	setProp,
 	eq,
 	not,
+	fold,
+	foldMap,
 	listOf,
 	listHead,
 	listTail,
@@ -94,6 +107,8 @@ module.exports.prop = prop;
 module.exports.setProp = setProp;
 module.exports.eq = eq;
 module.exports.not = not;
+module.exports.fold = fold;
+module.exports.foldMap = foldMap;
 module.exports.listOf = listOf;
 module.exports.listHead = listHead;
 module.exports.listTail = listTail;

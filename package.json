@@ -1,7 +1,7 @@
 {
 	"name": "domio",
 	"description": "DOM and Event helpers for Monio",
-	"version": "0.10.1",
+	"version": "0.11.0",
 	"main": "./src/index.js",
 	"scripts": {
 		"build": "npm run build-all",
@@ -9,11 +9,11 @@
 		"build-all": "node scripts/build-all.js"
 	},
 	"dependencies": {
-		"monio": ">=0.27.1"
+		"monio": ">=0.30.0"
 	},
 	"devDependencies": {
-		"import-remap": "~0.3.0",
-		"moduloze": "~0.7.0",
+		"import-remap": "~0.4.0",
+		"moduloze": "~0.8.0",
 		"recursive-readdir-sync": "~1.0.6"
 	},
 	"mz-dependencies": {
@@ -22,11 +22,11 @@
 		"misc-helpers.js": "MiscHelpers",
 		"dom-helpers.js": "DOMHelpers",
 		"event-helpers.js": "EventHelpers",
-		"monio/io": "IO",
-		"monio/either": "Either",
-		"monio/io-event-stream": "IOEventStream",
-		"monio/io-helpers": "IOHelpers",
-		"monio/util": "MonioUtil"
+		":::monio/io": "IO",
+		":::monio/either": "Either",
+		":::monio/io/event-stream": "IOEventStream",
+		":::monio/io/helpers": "IOHelpers",
+		":::monio/util": "MonioUtil"
 	},
 	"exports": {
 		".": {

@@ -3,10 +3,10 @@
 // import from Monio
 var IO = require("monio/io");
 var {
+	match,
 	iif,
-	els,
 	iReturn,
-} = require("monio/io-helpers");
+} = require("monio/io/helpers");
 
 // internal imports
 var {
@@ -49,12 +49,14 @@ var updateState = (...steps) => (
 function shareStates(allowedStates) {
 	return function *getSharedState(env,state){
 		return (
-			yield iif(allowedStates.includes(state),[
-				iReturn(getState(state)),
-			],
-			els(
-				iReturn(undefined)
-			))
+			yield match(
+				allowedStates.includes(state), $=>[
+					iReturn(getState(state)),
+				],
+				$=>[
+					iReturn(undefined)
+				]
+			)
 		).returned;
 	};
 }

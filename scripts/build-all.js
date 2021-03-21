@@ -59,6 +59,7 @@ console.log("*** Building DOMIO ***");
 		);
 
 		console.log("Built dist/umd/");
+		console.log("Built dist/esm/");
 
 		// run import-remap CLI on the dist/esm tree
 		// to remap the external dependency references to URLs
@@ -73,21 +74,6 @@ console.log("*** Building DOMIO ***");
 		);
 
 		console.log("Built dist/esm-browser/");
-
-		// run import-remap CLI on the dist/esm tree
-		// to remap the external dependency references to
-		// node-style package imports
-		await execFileAsync(
-			path.join(ROOT_DIR,"node_modules",".bin","import-remap"),
-			[
-				`--from=${DIST_ESM_DIR}`,
-				`--to=${DIST_ESM_DIR}`,  // overwrite built ESM files!
-				"--map=./scripts/esm-node-import-map.json",
-				"-rn"
-			]
-		);
-
-		console.log("Built dist/esm/");
 
 		// copy over external dependencies (monio) into
 		// dist/umd/, dist/esm/, and dist/esm-browser/

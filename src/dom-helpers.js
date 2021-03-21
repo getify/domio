@@ -10,14 +10,14 @@ var {
 var IO = require("monio/io");
 var {
 	listFilterInIO,
+	match,
 	iif,
-	elif,
-	els,
 	iNot,
+	iAnd,
 	iReturn,
 	getPropIO,
 	assignPropIO,
-} = require("monio/io-helpers");
+} = require("monio/io/helpers");
 
 // internal imports
 var {
@@ -40,15 +40,15 @@ var whenDOMReady = () => IO.do(
 		window: win = window,
 		document: doc = win.document || document,
 	} = {}){
-		return iif((
+		return iif(iAnd(
 			// DOM root object defined
-			doc &&
+			doc,
 			// but DOM not ready yet?
-			!(
-				doc.readyState &&
+			iNot(iAnd(
+				doc.readyState,
 				doc.readyState != "loading"
-			)
-		),$=>[
+			))
+		), $=>[
 			// listen for the DOM-ready event
 			waitOnce(doc,"DOMContentLoaded")
 		]);
@@ -161,22 +161,26 @@ function *clearTextSelection({
 	document: doc = win.document || document,
 } = {}) {
 	try {
-		yield iif(win.getSelection,[function *then(){
-			var sel = yield getCurrentSelection();
+		yield match(
+			win.getSelection, [function *then(){
+				var sel = yield getCurrentSelection();
 
-			// Chrome?
-			yield iif(!!sel.empty,$=>[
-				emptySelection(IO.of(sel)),
-			],
-			// Firefox?
-			elif(!!sel.removeAllRanges,$=>[
-				removeAllRanges(IO.of(sel)),
-			]));
-		}],
-		// IE?
-		elif(doc.selection,$=>[
-			emptySelection(IO.of(doc.selection)),
-		]));
+				yield match(
+					// Chrome?
+					!!sel.empty, $=>[
+						emptySelection(IO.of(sel)),
+					],
+					// Firefox?
+					!!sel.removeAllRanges, $=>[
+						removeAllRanges(IO.of(sel)),
+					]
+				);
+			}],
+			// IE?
+			doc.selection, $=>[
+				emptySelection(IO.of(doc.selection)),
+			]
+		);
 	}
 	catch (err) {}
 }

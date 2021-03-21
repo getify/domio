@@ -1,7 +1,0 @@
-{
-	"./monio/either": "monio/either",
-	"./monio/io": "monio/io",
-	"./monio/io-event-stream": "monio/io-event-stream",
-	"./monio/io-helpers": "monio/io-helpers",
-	"./monio/util": "monio/util"
-}

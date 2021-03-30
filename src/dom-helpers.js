@@ -62,26 +62,26 @@ var getElement = id => (
 		document: doc = win.document || document,
 	} = {}) => doc.getElementById(id))
 );
-var findElements = compose(
-	invokeMethod("map",listOf),
-	invokeMethodIO("querySelectorAll")
-);
+var findElements = curry((el,selector)=>(
+	invokeMethodIO("querySelectorAll")(el,selector)
+	.map(listOf)
+),2);
 var findElement = compose(
 	invokeMethod("map",listHead),
 	findElements
 );
 var modifyClassList = methodName => (
-	(el,...args) => (
+	curry((el,...args) => (
 		invokeMethodIO(methodName)
 		(
 			getPropIO("classList",el),
 			...args
 		)
-	)
+	),2)
 );
 var addClass = modifyClassList("add");
 var removeClass = modifyClassList("remove");
-var getCSSVar = (el,varName) => (
+var getCSSVar = curry((el,varName) => (
 	// NOTE: intentional 'chain(..)' instead of 'map(..)'
 	liftM(el).chain(el => (
 		IO(({
@@ -94,8 +94,8 @@ var getCSSVar = (el,varName) => (
 			.getPropertyValue(`--${varName}`)
 		))
 	))
-)
-var setCSSVar = (el,varName,val) => (
+),2);
+var setCSSVar = curry((el,varName,val) => (
 	liftM(val).chain(
 		curry(invokeMethodIO("setProperty"),3)
 		(
@@ -103,9 +103,9 @@ var setCSSVar = (el,varName,val) => (
 			`--${varName}`,
 		)
 	)
-);
-var getDOMAttr = invokeMethodIO("getAttribute");
-var assignDOMAttr = (el,attrName,val) => (
+),3);
+var getDOMAttr = curry(invokeMethodIO("getAttribute"),2);
+var assignDOMAttr = curry((el,attrName,val) => (
 	liftM(val).chain(
 		curry(invokeMethodIO("setAttribute"),3)
 		(
@@ -113,25 +113,27 @@ var assignDOMAttr = (el,attrName,val) => (
 			attrName,
 		)
 	)
-);
-var removeDOMAttr = invokeMethodIO("removeAttribute");
-var matches = invokeMethodIO("matches");
-var closest = invokeMethodIO("closest");
-var getRadioValue = (el,name) => IO.do(function *getRadioValue(){
+),3);
+var removeDOMAttr = curry(invokeMethodIO("removeAttribute"),2);
+var matches = curry(invokeMethodIO("matches"),2);
+var closest = curry(invokeMethodIO("closest"),2);
+var getRadioValue = curry((el,name) => IO.do(function *getRadioValue(){
 	el = yield liftM(el);
 	var radios = yield findElements(el,`[name='${name}']`);
 	var checkedRadioEl = listHead(
 		yield listFilterInIO(isChecked,[ ...radios ])
 	);
 	return checkedRadioEl.value;
-});
+}),2);
 var getHTML = curry(getPropIO)("innerHTML");
-var setHTML = (el,html) => assignPropIO("innerHTML",html,el);
+var setHTML = curry((el,html) => (
+	assignPropIO("innerHTML",html,el)
+),2);
 var disableElement = curry(assignPropIO)("disabled",true);
 var enableElement = curry(assignPropIO)("disabled",false);
 var isChecked = curry(getPropIO)("checked");
 var isDisabled = curry(getPropIO)("disabled");
-var isEnabled = el => iNot(isDisabled(el));
+var isEnabled = compose(iNot,isDisabled);
 var focusElement = invokeMethodIO("focus");
 var blurElement = invokeMethodIO("blur");
 

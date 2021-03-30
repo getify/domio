@@ -8,18 +8,18 @@ var { curry, } = require("monio/util");
 
 
 var identity = v => v;
-var apply = fn => (args => fn(...args));
+var apply = curry((fn,args) => fn(...args),2);
 var unapply = fn => ((...args) => fn(args));
 var invokeMethod = (methodName,...args) => (obj => (
 	obj[methodName](...args)
 ));
-var prop = key => (obj => obj[key]);
-var setProp = (prop,val) => ((obj = {}) => (
+var prop = curry((key,obj) => obj[key],2);
+var setProp = curry((prop,val,obj) => (
 	{ ...obj, [prop]: val, }
-));
+),3);
 var eq = curry(Object.is,2);
 var not = fn => ((...args) => !fn(...args));
-var fold = (s,v) => s.concat(v);
+var fold = curry((s,v) => s.concat(v),2);
 var foldMap = curry(function foldMap(f,list,empty) {
 	return (
 		empty ? list.reduce((s,v) => fold(s,f(v)),empty) :
@@ -41,22 +41,22 @@ var listOf = v => (
 );
 var listHead = list => list[0];
 var listTail = invokeMethod("slice",1);
-var listFilterIn = pred => invokeMethod("filter",pred);
-var listFilterOut = pred => invokeMethod("filter",not(pred));
-var listMap = fn => invokeMethod("map",fn);
-var listFlatMap = fn => invokeMethod("flatMap",fn);
-var listReduce = (fn,...args) => (
-	args.length > 0 ?
-		invokeMethod("reduce",fn,...args) :
-		invokeMethod("reduce",fn)
-);
-var listReduceRight = (fn,...args) => (
-	args.length > 0 ?
-		invokeMethod("reduceRight",fn,...args) :
-		invokeMethod("reduceRight",fn)
-);
-var listPrepend = v => (list => [ v, ...list, ]);
-var listAppend = v => (list => [ ...list, v, ]);
+var listFilterIn = curry((pred,list) => list.filter(pred),2);
+var listFilterOut = curry((pred,list) => list.filter(not(pred)),2);
+var listMap = curry((fn,list) => list.map(fn),2);
+var listFlatMap = curry((fn,list) => list.flatMap(fn),2);
+var listReduce = curry((fn,...args) => (
+	args.length > 1 ?
+		args[1].reduce(fn,args[1]) :
+		args[0].reduce(fn)
+),2);
+var listReduceRight = curry((fn,...args) => (
+	args.length > 1 ?
+		args[1].reduceRight(fn,args[1]) :
+		args[0].reduceRight(fn)
+),2);
+var listPrepend = curry((v,list) => [ v, ...list, ]);
+var listAppend = curry((v,list) => [ ...list, v, ]);
 var takeAll = it => [ ...it, ];
 var chainAll = (...steps) => m => (
 	steps.reduce((m,fn) => m.chain(fn),m)

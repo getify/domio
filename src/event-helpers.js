@@ -343,8 +343,9 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 			yield iif(!streams, [function *then(){
 				streams = yield doIO(getEventStreams);
 
-				// check existing scheduled stream heads
-				for (let stream of streamHeads.keys()) {
+				// prune defunct schedule queue entries by
+				// re-validating against active streams
+				for (let [ stream, headPr, ] of [ ...streamHeads.entries(), ]) {
 					yield iif(iAnd(
 						// ignore the control-signal stream
 						stream != controlStream,
@@ -354,7 +355,6 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 					),
 					[function *then(){
 						// remove from schedule queue
-						var headPr = streamHeads.get(stream);
 						var idx = scheduleRRQueue.indexOf(headPr);
 						scheduleRRQueue.splice(idx,1);
 						streamHeads.delete(stream);
@@ -375,7 +375,7 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 			}]);
 
 			// wait for a signal or DOM event
-			let evt = await Promise.race([
+			let res = await Promise.race([
 				// control signal promise
 				streamHeads.get(controlStream),
 
@@ -385,7 +385,7 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 
 			// control signal received?
 			let matchRes = yield match(
-				evt == SIGNAL, $=>[
+				res == SIGNAL, $=>[
 					ifReturned(
 						// have we stopped?
 						match(
@@ -403,9 +403,12 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 						)
 					),
 				],
-				!!evt, $=>[
+				Array.isArray(res), $=>[
+					// run the cleanup/reset function
+					IO(() => res[1]()),
+
 					// route the DOM event to its handler
-					doIO(routeDOMEvent,evt),
+					doIO(routeDOMEvent,res[0]),
 				]
 			);
 
@@ -439,24 +442,30 @@ async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
 	async function getStreamHead(stream) {
 		// wait for stream to send an event
 		var res = await stream.next();
-		// is stream still being listened to?
-		if (streamHeads.has(stream)) {
-			// remove previous head-promise from scheduling queue
-			let oldHeadPr = streamHeads.get(stream);
-			streamHeads.delete(stream);
-			let idx = scheduleRRQueue.indexOf(oldHeadPr);
-			scheduleRRQueue.splice(idx,1);
+		return [
+			// return the received stream event
+			res.value,
 
-			if (!res.done) {
-				// get a promise for the next stream head, and insert
-				// it at end of scheduling queue (round-robin)
-				let nextHeadPr = getStreamHead(stream);
-				scheduleRRQueue.push(nextHeadPr);
-				streamHeads.set(stream,nextHeadPr);
-			}
-		}
-		// return the received stream event
-		return res.value;
+			// to cleanup/reset once this stream event has been received
+			function cleanup(){
+				// is stream still being listened to?
+				if (streamHeads.has(stream)) {
+					// remove previous head-promise from scheduling queue
+					let oldHeadPr = streamHeads.get(stream);
+					streamHeads.delete(stream);
+					let idx = scheduleRRQueue.indexOf(oldHeadPr);
+					scheduleRRQueue.splice(idx,1);
+
+					if (!res.done) {
+						// get a promise for the next stream head, and insert
+						// it at end of scheduling queue (round-robin)
+						let nextHeadPr = getStreamHead(stream);
+						scheduleRRQueue.push(nextHeadPr);
+						streamHeads.set(stream,nextHeadPr);
+					}
+				}
+			},
+		];
 	}
 }
 

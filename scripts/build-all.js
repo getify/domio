@@ -69,6 +69,8 @@ console.log("*** Building DOMIO ***");
 				`--from=${DIST_ESM_DIR}`,
 				`--to=${DIST_ESM_BROWSER_DIR}`,
 				"--map=./scripts/esm-browser-import-map.json",
+				"--ignore=**/*.json",
+				"--ignore=**/monio/*",
 				"-rn"
 			]
 		);

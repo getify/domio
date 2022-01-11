@@ -1,12 +1,12 @@
 "use strict";
 
 // import from Monio
-var { liftM, } = require("monio/util");
+var { isMonad, liftM, } = require("monio/util");
 var Either = require("monio/either");
 var IO = require("monio/io");
+var IOx = require("monio/iox");
 var {
 	log,
-	applyIO,
 	doIO,
 	doIOBind,
 	match,
@@ -14,21 +14,11 @@ var {
 	iNot,
 	iReturn,
 	wasReturned,
-	ifReturned,
 } = require("monio/io/helpers");
-var IOEventStream = require("monio/io/event-stream");
+var { waitFor, } = require("monio/iox/helpers");
 
 // internal imports
-var {
-	eq,
-	prop,
-	listHead,
-	listMap,
-	listFilterOut,
-	listFlatMap,
-	takeAll,
-	compose,
-} = require("./fp-helpers.js");
+var { eq, listFilterOut, } = require("./fp-helpers.js");
 var {
 	getState,
 	getStates,
@@ -64,17 +54,21 @@ function emitEvent(type,...args) {
 }
 
 function waitOnce(el,evtName,opts) {
-	return (
-		// NOTE: intentional 'chain(..)' instead of 'map(..)'
-		liftM(el).chain(el => (
-			IO(async function waitOnce(){
-				var stream = IOEventStream(el,evtName,{ evtOpts: opts, }).run();
-				var res = await stream.next();
-				await stream.return();
-				return res.value;
-			})
-		))
-	);
+	// lift `el` to an IOx instance
+	let m = isMonad(el) ? el : IOx.of(el);
+	if (!IOx.is(m)) {
+		if (IO.is(m)) {
+			m = IOx.fromIO(m);
+		}
+		else {
+			// NOTE: intentional 'chain(..)' instead of 'map(..)',
+			// even though a non-IOx monad's chain() is returning
+			// an IOx, which is sorta no-no
+			m = m.chain(IOx.of);
+		}
+	}
+
+	return m.chain(el => waitFor(IOx.onceEvent(el,evtName,opts)));
 }
 
 function raf(nextFrame = true) {
@@ -104,12 +98,13 @@ function manageDOMEvents(evtEmitter) {
 		// get the event-emitter (if any)
 		var events = env.events || evtEmitter;
 
+		var nextDOMEvent = IOx.of.empty();
+
 		// create own reader-env
 		env = {
 			events,
 
-			// include the control-stream components
-			...(yield doIO(initControlStream)),
+			nextDOMEvent,
 
 			// local state management
 			state: {
@@ -119,14 +114,8 @@ function manageDOMEvents(evtEmitter) {
 			},
 		};
 
-		// run the DOM event router in the background
-		// in its new reader-env
-		//
-		// NOTE: even though we yield here (to indicate
-		// side-effects), we aren't waiting on it; it's
-		// a persistent background process (IO do-routine)
-		// that's only torn down by calling stop()
-		yield applyIO(doIOBackground(listenForDOMEvents),env);
+		// setup IOx to listen for and handle all DOM events
+		env.listener = IOx.do(routeDOMEvent,[ nextDOMEvent ]).run(env);
 
 		// expose the (env-bound) controller API
 		return {
@@ -139,7 +128,7 @@ function manageDOMEvents(evtEmitter) {
 	});
 }
 
-function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
+function *listenDOMEvent({ nextDOMEvent, },el,evtName,options = false) {
 	// unwrap DOM element if monad
 	el = yield liftM(el);
 
@@ -159,22 +148,25 @@ function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
 
 	// new listener?
 	return match(
-		!evtStreams[bindingLabel], [function *then(){
+		!evtStreams[bindingLabel], [function *then(env){
 			evtStreams = {
 				...evtStreams,
 
 				// sets up stream (actual event binding is lazy)
 				[bindingLabel]: [
-					yield IOEventStream(el,evtName,{ evtOpts: options, }),
+					IOx.onEvent(el,evtName,options),
 					/*listenerCount=*/1,
 				],
 			};
+			// connect DOM event listener stream to merged event
+			// stream
+			evtStreams[bindingLabel][0].chain(evt => (
+				IO.of(nextDOMEvent(evt))
+			)).run(env);
+
 			elements = new Map(elements);
 			elements.set(el,evtStreams);
 			yield updateState(setState("elements",elements));
-
-			// signal that new stream was added to listen to
-			yield controlSignal();
 		}],
 		[function *otherwise(){
 			// increment the listener count
@@ -188,7 +180,7 @@ function *listenDOMEvent({ controlSignal, },el,evtName,options = false) {
 	);
 }
 
-function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
+function *unlistenDOMEvent(env,el,evtName,options = false) {
 	// unwrap DOM element if monad
 	el = yield liftM(el);
 
@@ -210,8 +202,8 @@ function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
 		var [ stream, count, ] = evtStreams[bindingLabel] || [];
 
 		yield iif(!!stream, $=>[
-			// multiple listeners?
 			match(
+				// multiple listeners?
 				count > 1, [function *then(){
 					// decrement the listener count
 					evtStreams = { ...evtStreams, };
@@ -223,6 +215,8 @@ function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
 				}],
 				// otherwise, last listener should be removed
 				[function *otherwise(){
+					yield closeStream(stream);
+
 					evtStreams = { ...evtStreams, };
 					delete evtStreams[bindingLabel];
 					elements = new Map(elements);
@@ -233,12 +227,6 @@ function *unlistenDOMEvent({ controlSignal, },el,evtName,options = false) {
 						elements.delete(el);
 					}
 					yield updateState(setState("elements",elements));
-
-					// signal stream should no longer be listened to
-					yield controlSignal();
-
-					// unbind event listener and close stream
-					yield IOEventStream.close(stream);
 				}]
 			),
 		]);
@@ -256,217 +244,13 @@ function *addDOMRouter(env,updateRouters) {
 }
 
 function *removeDOMRouter(env,router) {
-	yield throwIfNotRunning();
+	// abort if DOM events is already stopped
+	yield doIO(throwIfNotRunning);
 
 	var routers = yield getState("routers");
 	return updateState(
 		setState("routers",listFilterOut(eq(router))(routers))
 	);
-}
-
-function *initControlStream(env) {
-	const SIGNAL = Symbol("control signal");
-	// bare minimum event-emitter shim
-	var control = {
-		cb: null,
-		on(x,cb) { control.cb = cb; },
-		emit(type,...args) {
-			if (control.cb) {
-				control.cb(...args);
-			}
-		},
-		off(x,cb) {	control.cb = null; },
-	};
-	var controlStream = yield IOEventStream(control,"signal");
-
-	return {
-		controlStream,
-		controlSignal() {
-			return IO(() => control.emit("signal",SIGNAL));
-		},
-		SIGNAL,
-	};
-}
-
-function *getEventStreams(env) {
-	var [
-		running,
-		elements,
-	] = yield getStates(
-		"running",
-		"elements",
-	);
-
-	return ifReturned(
-		match(
-			running, [function *then(){
-				var collectOpenStreams = compose(
-					// (4) filter out streams that are already closed
-					listFilterOut(prop("closed")),
-
-					// (3) extract the first element of each tuple
-					listMap(listHead),
-
-					// (2) extract all values (tuples) from each Map
-					listFlatMap(Object.values),
-
-					// (1) consume the Set 'values()' iterator
-					takeAll
-				);
-				return iReturn(
-					collectOpenStreams(elements.values())
-				);
-			}],
-			$=>[
-				iReturn([]),
-			]
-		)
-	);
-}
-
-// listen to all DOM event streams and route out
-// any received events
-async function *listenForDOMEvents({ SIGNAL, controlStream, }) {
-	var streams;
-	var streamHeads = new Map();
-	streamHeads.set(controlStream,getNextControlSignal());
-	var scheduleRRQueue = [];
-
-	try {
-		while (true) {
-			// have we stopped listening for DOM events?
-			if (!(yield getState("running"))) {
-				return;
-			}
-
-			// need to (re)acquire the list of streams?
-			yield iif(!streams, [function *then(){
-				streams = yield doIO(getEventStreams);
-
-				// prune defunct schedule queue entries by
-				// re-validating against active streams
-				for (let [ stream, headPr, ] of [ ...streamHeads.entries(), ]) {
-					yield iif(iAnd(
-						// ignore the control-signal stream
-						stream != controlStream,
-
-						// no longer listening to this event stream?
-						!streams.includes(stream)
-					),
-					[function *then(){
-						// remove from schedule queue
-						var idx = scheduleRRQueue.indexOf(headPr);
-						scheduleRRQueue.splice(idx,1);
-						streamHeads.delete(stream);
-					}]);
-				}
-
-				// check list of current streams
-				for (let stream of streams) {
-					// stream not yet in the schedule queue?
-					yield iif(!streamHeads.has(stream), [function *then(){
-						// insert promise for head of stream
-						// at end of scheduling queue
-						var headPr = getStreamHead(stream);
-						scheduleRRQueue.push(headPr);
-						streamHeads.set(stream,headPr);
-					}]);
-				}
-			}]);
-
-			// wait for a signal or DOM event
-			let res = await Promise.race([
-				// control signal promise
-				streamHeads.get(controlStream),
-
-				// round-robin queue of stream-head promises
-				Promise.race([ ...scheduleRRQueue, ]),
-			]);
-
-			// control signal received?
-			let matchRes = yield match(
-				res == SIGNAL, $=>[
-					ifReturned(
-						// have we stopped?
-						match(
-							iNot(getState("running")), [
-								// send return signal so we can exit
-								iReturn()
-							],
-							[function *otherwise(){
-								// throw away (to re-acquire) list of streams
-								streams = null;
-
-								// get a promise for the next control signal
-								streamHeads.set(controlStream,getNextControlSignal());
-							}]
-						)
-					),
-				],
-				Array.isArray(res), $=>[
-					// run the cleanup/reset function
-					IO(() => res[1]()),
-
-					// route the DOM event to its handler
-					doIO(routeDOMEvent,res[0]),
-				]
-			);
-
-			// was there an "early return" from inside the
-			// conditionals?
-			if (wasReturned(matchRes)) {
-				return matchRes.returned;
-			}
-		}
-	}
-	finally {
-		yield iif(!!streams, [function *then(){
-			// NOTE: does not wait for the streams
-			// to finish closing
-			yield IOEventStream.close(controlStream,...streams);
-			streamHeads.clear();
-			streams = scheduleRRQueue = null;
-		}]);
-	}
-
-
-	// ****************************************
-
-	async function getNextControlSignal() {
-		// wait for a control signal
-		var res = await controlStream.next();
-		// return the received control signal
-		return res.value;
-	}
-
-	async function getStreamHead(stream) {
-		// wait for stream to send an event
-		var res = await stream.next();
-		return [
-			// return the received stream event
-			res.value,
-
-			// to cleanup/reset once this stream event has been received
-			function cleanup(){
-				// is stream still being listened to?
-				if (streamHeads.has(stream)) {
-					// remove previous head-promise from scheduling queue
-					let oldHeadPr = streamHeads.get(stream);
-					streamHeads.delete(stream);
-					let idx = scheduleRRQueue.indexOf(oldHeadPr);
-					scheduleRRQueue.splice(idx,1);
-
-					if (!res.done) {
-						// get a promise for the next stream head, and insert
-						// it at end of scheduling queue (round-robin)
-						let nextHeadPr = getStreamHead(stream);
-						scheduleRRQueue.push(nextHeadPr);
-						streamHeads.set(stream,nextHeadPr);
-					}
-				}
-			},
-		];
-	}
 }
 
 // route events from all streams
@@ -513,58 +297,35 @@ function *routeDOMEvent(env,evt) {
 	}]);
 }
 
-function *stopManagingDOMEvents({ controlStream, controlSignal, }) {
+function *stopManagingDOMEvents({ nextDOMEvent, }) {
 	var [
 		running,
 		elements,
-		routers,
 	] = yield getStates(
 		"running",
 		"elements",
-		"routers",
 	);
 
 	return iif(running, [function *then(){
 		// teardown all current event streams and
 		// unbind their underlying event listeners
-		//
-		// NOTE: does not wait for the streams
-		// to finish closing
-		let streams = yield doIO(getEventStreams);
-		yield IOEventStream.close(...streams);
+		yield closeStream(nextDOMEvent);
+		for (let elementBindings of elements) {
+			for (let [ stream, ] of Object.values(elementBindings)) {
+				yield closeStream(stream);
+			}
+		}
+		elements = null;
 
 		// reset states for cleanup purposes
-		yield updateState(
+		return updateState(
 			setStates(
 				[ "running", false ],
 				[ "elements", null ],
 				[ "routers", null ],
 			)
 		);
-
-		// tear down the background DOM events handler
-		yield controlSignal();
-
-		// NOTE: does not wait for the stream
-		// to finish closing
-		yield IOEventStream.close(controlStream);
 	}]);
-}
-
-function doIOBackground(fn,...args) {
-	return (
-		(args.length > 0) ?
-			IO(env => void(
-				IO.do(fn(env,...args))
-				.run(env)
-				.catch(reportError)
-			)) :
-			IO(env => void(
-				IO.do(fn)
-				.run(env)
-				.catch(reportError)
-			))
-	);
 }
 
 function reportError(err) {
@@ -586,4 +347,8 @@ function *throwIfNotRunning() {
 	return iif(iNot(getState("running")),[function *then(){
 		throw new Error("DOM events management already stopped");
 	}]);
+}
+
+function closeStream(stream) {
+	return IO(() => stream.close());
 }

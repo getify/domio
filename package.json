@@ -1,7 +1,7 @@
 {
 	"name": "domio",
 	"description": "DOM and Event helpers for Monio",
-	"version": "0.14.3",
+	"version": "0.15.0",
 	"main": "./src/index.js",
 	"scripts": {
 		"build": "npm run build-all",
@@ -23,9 +23,10 @@
 		"dom-helpers.js": "DOMHelpers",
 		"event-helpers.js": "EventHelpers",
 		":::monio/io": "IO",
+		":::monio/iox": "IOx",
 		":::monio/either": "Either",
-		":::monio/io/event-stream": "IOEventStream",
 		":::monio/io/helpers": "IOHelpers",
+		":::monio/iox/helpers": "IOxHelpers",
 		":::monio/util": "MonioUtil"
 	},
 	"exports": {
@@ -49,11 +50,6 @@
 			"import": "./dist/esm/event-helpers.mjs",
 			"default": "./src/event-helpers.js"
 		},
-		"./esm": "./dist/esm/index.mjs",
-		"./esm/fp-helpers": "./dist/esm/fp-helpers.mjs",
-		"./esm/misc-helpers": "./dist/esm/misc-helpers.mjs",
-		"./esm/dom-helpers": "./dist/esm/dom-helpers.mjs",
-		"./esm/event-helpers": "./dist/esm/event-helpers.mjs",
 		"./esm-browser": "./dist/esm-browser/index.mjs",
 		"./esm-browser/fp-helpers": "./dist/esm-browser/fp-helpers.mjs",
 		"./esm-browser/misc-helpers": "./dist/esm-browser/misc-helpers.mjs",

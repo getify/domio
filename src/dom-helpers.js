@@ -50,7 +50,7 @@ var whenDOMReady = () => IO.do(
 			))
 		), $=>[
 			// listen for the DOM-ready event
-			waitOnce(doc,"DOMContentLoaded")
+			waitOnce(doc,"DOMContentLoaded"),
 		]);
 	}
 );

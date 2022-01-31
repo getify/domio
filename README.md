@@ -1,5 +1,9 @@
 # Domio
 
+[![npm Module](https://badge.fury.io/js/domio.svg)](https://www.npmjs.org/package/domio)
+[![Modules](https://img.shields.io/badge/modules-ESM%2BUMD%2BCJS-a1356a)](https://nodejs.org/api/packages.html#dual-commonjses-module-packages)
+[![License](https://img.shields.io/badge/license-MIT-a1356a)](LICENSE.txt)
+
 **Domio** (dä'me-yo) is a companion lib to [Monio](https://github.com/getify/monio), providing a collection of helpers to manage/manipulate the DOM with IO monads, and listen for DOM events via IO-Event-Streams and route the event handling.
 
 ## Overview
@@ -23,6 +27,9 @@ The four collections of helpers provided:
 More details coming soon.
 
 ## npm Package
+
+[![npm Module](https://badge.fury.io/js/domio.svg)](https://www.npmjs.org/package/domio)
+[![Modules](https://img.shields.io/badge/modules-ESM%2BUMD%2BCJS-a1356a)](https://nodejs.org/api/packages.html#dual-commonjses-module-packages)
 
 To install this package from `npm`:
 
@@ -144,5 +151,7 @@ import IO from "monio/io";
 **Note:** As of v0.4.0, the previously required ESM import specifier segment `/esm` in **Domio** `import` paths has been deprecated (and will eventually be removed), in favor of unified import specifier paths via [Node Conditional Exports](https://nodejs.org/api/packages.html#packages_conditional_exports). For ESM `import` statements, always use the specifier style `"domio"` or `"domio/dom-helpers"`, instead of `"domio/esm"` and `"domio/esm/dom-helpers"`, respectively. This does not affect the separate `/esm-browser` paths, should you (for some reason) need to access the browser-build of the ESM files via `import` statements in Node (not supported).
 
 ## License
+
+[![License](https://img.shields.io/badge/license-MIT-a1356a)](LICENSE.txt)
 
 All code and documentation are (c) 2021 Kyle Simpson and released under the [MIT License](http://getify.mit-license.org/). A copy of the MIT License [is also included](LICENSE.txt).

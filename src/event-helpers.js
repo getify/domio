@@ -154,7 +154,7 @@ function *listenDOMEvent({ nextDOMEvent, },el,evtName,options = false) {
 
 				// sets up stream (actual event binding is lazy)
 				[bindingLabel]: [
-					IOx.onEvent(el,evtName,options),
+					IOx.onEvent(el,evtName,{ evtOpts: options }),
 					/*listenerCount=*/1,
 				],
 			};

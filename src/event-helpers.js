@@ -328,21 +328,6 @@ function *stopManagingDOMEvents({ nextDOMEvent, }) {
 	}]);
 }
 
-function reportError(err) {
-	if (Either.Left.is(err)) {
-		err.fold(console.log,() => {});
-	}
-	else if (typeof err == "string") {
-		console.log(err);
-	}
-	else if (err.stack) {
-		console.log(err.stack);
-	}
-	else {
-		console.log(err.toString());
-	}
-}
-
 function *throwIfNotRunning() {
 	return iif(iNot(getState("running")),[function *then(){
 		throw new Error("DOM events management already stopped");

@@ -1,7 +1,7 @@
 {
 	"name": "domio",
 	"description": "DOM and Event helpers for Monio",
-	"version": "0.16.3",
+	"version": "0.16.4",
 	"main": "./src/index.js",
 	"scripts": {
 		"build": "npm run build-all",
@@ -12,8 +12,8 @@
 		"monio": ">=0.51.0"
 	},
 	"devDependencies": {
-		"import-remap": "~0.5.0",
-		"moduloze": "~0.8.0",
+		"import-remap": "~0.5.1",
+		"moduloze": "~0.9.1",
 		"recursive-readdir-sync": "~1.0.6"
 	},
 	"mz-dependencies": {
